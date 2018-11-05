@@ -1,0 +1,5 @@
+---
+#all playbook vars will be found in this yaml file
+db_name: demo
+db_user: demo
+db_pass: demo

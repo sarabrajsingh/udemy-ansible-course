@@ -1,0 +1,81 @@
+---
+#status playbooks shouldn't really change the state of anything, the assumption is that we just get a read-only
+#report on the state-of-tings
+#we also want to make sure that the webservers are listening on our port 80, and that the mysql server is listening on 3033
+
+- hosts: loadbalancers
+  become: true
+  tasks:
+    - name: verify status of nginx on load balancer(s)
+      command: service nginx status
+    
+    - name: verify that nginx is listening on port 80
+      wait_for: port=80 timeout=1
+    
+- hosts: webservers 
+  become: true
+  tasks:
+    - name: verify status of apache2 service on webserver(s)
+      command: service apache2 status
+
+    - name: verify that apache2 is listening on port 80
+      wait_for: port=80 timeout=1
+
+- hosts: databases
+  become: true
+  tasks:
+    - name: verify status of mysql service on database(s)
+      command: service mysql status
+
+    - name: verify that mysql is listening on port 3306
+      wait_for: host={{ ansible_enp0s8.ipv4.address }} port=3306 timeout=1
+
+# end to end checks
+
+- hosts: webservers #pseudo-control here
+  tasks:
+    - name: verify end-to-end reponse
+      uri: url=http://{{item}} return_content=yes
+      with_items:
+        - "load-balancer-1"
+      register: lb_index
+
+    - fail: msg="index failed to return content"
+      when: "'Hello, from sunny' not in item.content"
+      with_items: "{{lb_index.results}}"
+
+    - name: verify db reponse from webservers
+      uri: url=http://{{item}}/db return_content=yes
+      with_items:
+        - "ansible-slave"
+        - "ansible-control"
+      register: db_app_index
+
+    - fail: msg="index failed to return content"
+      when: "'Database Connected from' not in item.content"
+      with_items: "{{db_app_index.results}}"
+
+# checks from load balancer
+
+- hosts: loadbalancers
+  tasks:
+    - name: verify backend reponse
+      uri: url=http://{{item}} return_content=yes
+      with_items:
+        - "ansible-slave"
+        - "ansible-control"
+      register: app_index
+
+    - fail: msg="index failed to return content"
+      when: "'Hello, from sunny' not in item.content"
+      with_items: "{{app_index.results}}"
+
+    - name: verify db reponse from loadbalancer
+      uri: url=http://{{item}}/db return_content=yes
+      with_items:
+        - "load-balancer-1"
+      register: db_lb_index
+
+    - fail: msg="index failed to return content"
+      when: "'Database Connected from' not in item.content"
+      with_items: "{{db_lb_index.results}}"

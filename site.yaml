@@ -1,0 +1,7 @@
+---
+# playbook that contains all playbooks
+# the 'include' module will nest other playbooks inside of playbooks
+- include: control.yaml
+- include: databases.yaml
+- include: webservers.yaml
+- include: loadbalancers.yaml

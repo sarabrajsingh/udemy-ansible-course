@@ -1,0 +1,25 @@
+---
+# tasks file for mysql
+- name: install mysql tools
+  apt: name={{ item }} state=present update_cache=yes
+  with_items:
+    - python-mysqldb
+
+- name: install mysql-server
+  apt: name=mysql-server state=present update_cache=yes
+
+- name: ensure mysql listening to all external ports
+#lineinfile will scrub a given file with a regex pattern and replace it with whatever you specify for line
+  lineinfile: dest=/etc/mysql/my.cnf regexp=^bind-address line=bind-address= {{ ansible_enp0s8.ipv4.address }}
+  notify: restart mysql
+
+#ansible mysql module configuration here
+
+- name: create databases
+  mysql_db: name="{{ db_name }}" state=present
+
+- name: create demo user
+  mysql_user: name="{{ db_user_name }}" password="{{ db_user_pass }}" priv="{{ db_name }}".*:ALL host="{{ db_user_host }}" state=present
+
+- name: ensure mysql service is started
+  service: name=mysql state=started enabled=yes
