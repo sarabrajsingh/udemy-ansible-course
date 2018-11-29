@@ -1,7 +1,15 @@
 ---
+- hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: update apt cache
+      apt:  update_cache=yes cache_valid_time=172800
+  tags: [ 'packages' ]
 # playbook that contains all playbooks
-# the 'include' module will nest other playbooks inside of playbooks
-- include: control.yaml
-- include: databases.yaml
-- include: webservers.yaml
-- include: loadbalancers.yaml
+# the 'import_playbook' module will nest other playbooks inside of playbooks
+- import_playbook: control.yaml
+- import_playbook: databases.yaml
+- import_playbook: webservers.yaml
+- import_playbook: loadbalancers.yaml
+- import_playbook: stack_status.yaml

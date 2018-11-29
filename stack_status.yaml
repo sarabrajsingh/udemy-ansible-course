@@ -5,27 +5,33 @@
 
 - hosts: loadbalancers
   become: true
+  gather_facts: false
   tasks:
     - name: verify status of nginx on load balancer(s)
       command: service nginx status
+      changed_when: false
     
     - name: verify that nginx is listening on port 80
       wait_for: port=80 timeout=1
     
 - hosts: webservers 
   become: true
+  gather_facts: false
   tasks:
     - name: verify status of apache2 service on webserver(s)
       command: service apache2 status
+      changed_when: false
 
     - name: verify that apache2 is listening on port 80
       wait_for: port=80 timeout=1
 
 - hosts: databases
+  # need ansible var ansible_enp0s8.ipv4.address here so we can't disable facts
   become: true
   tasks:
     - name: verify status of mysql service on database(s)
       command: service mysql status
+      changed_when: false
 
     - name: verify that mysql is listening on port 3306
       wait_for: host={{ ansible_enp0s8.ipv4.address }} port=3306 timeout=1
@@ -33,6 +39,7 @@
 # end to end checks
 
 - hosts: webservers #pseudo-control here
+  gather_facts: false
   tasks:
     - name: verify end-to-end reponse
       uri: url=http://{{item}} return_content=yes
@@ -58,6 +65,7 @@
 # checks from load balancer
 
 - hosts: loadbalancers
+  gather_facts: false
   tasks:
     - name: verify backend reponse
       uri: url=http://{{item}} return_content=yes

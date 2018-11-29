@@ -1,25 +1,35 @@
 ---
 # tasks file for demo_app
 - name: install web components
-  apt:  name={{item}} state=present update_cache=yes
+  apt:  name={{item}} state=present 
   with_items:
   - python-pip
   - python-virtualenv
   - python-mysqldb
+  tags: [ 'packages' ]
+
+- name: copy demo app source files
+  copy: src=demo/app/ dest=/var/www/demo mode=0755
+  notify: restart apache2
+  tags: [ 'configure' ]
   
 - name: copy demo.wsgi
   # make sure you have the trailing '/' for the source folder
   template: src=demo.wsgi.j2 dest=/var/www/demo/demo.wsgi mode=0755
   notify: restart apache2
+  tags: [ 'configure' ]
 
 - name: copy apache2 demo.conf file to apache2/sites-available
   copy: src=demo/demo.conf dest=/etc/apache2/sites-available mode=0755
   notify: restart apache2
+  tags: [ 'configure' ]
 
 - name: setup python virutal module
   pip:  requirements=/var/www/demo/requirements.txt virtualenv=/var/www/demo/.venv
   notify: restart apache2
+  tags: [ 'system' ]
 
 - name: activate python wsgi demo site by creating symlink in apache2/sites-enabled to apache2/sites-available
   file: src=/etc/apache2/sites-available/demo.conf dest=/etc/apache2/sites-enabled/demo.conf state=link
   notify: restart apache2
+  tags: [ 'configure' ]
